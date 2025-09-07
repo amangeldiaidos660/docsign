@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет - DocSign</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-file-earmark-text"></i> DocSign
+            </a>
+            <div class="navbar-nav ms-auto align-items-center gap-3">
+                <span class="navbar-text">
+                    <i class="bi bi-person-circle"></i> {{ user.full_name or 'Пользователь' }}
+                </span>
+                <a class="btn btn-outline-light btn-sm" href="/user/logout">
+                    <i class="bi bi-box-arrow-right"></i> Выйти
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-white">
+                        <ul class="nav nav-tabs card-header-tabs" id="userTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#create" type="button" role="tab">
+                                    <i class="bi bi-plus-circle"></i> Создать документ
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                                    <i class="bi bi-clock"></i> Ожидает подписи
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab">
+                                    <i class="bi bi-folder"></i> Мои документы
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab">
+                                    <i class="bi bi-person"></i> Профиль
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="userTabsContent">
+                            <!-- Создать документ -->
+                            <div class="tab-pane fade show active" id="create" role="tabpanel">
+                                {% if not user.email %}
+                                <div class="alert alert-warning text-center">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <strong>Требуется email!</strong><br>
+                                    Для создания документов необходимо указать email адрес.
+                                    <br><br>
+                                    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#emailModal">
+                                        <i class="bi bi-envelope"></i> Добавить email
+                                    </button>
+                                </div>
+                                {% else %}
+                                {% include 'partials/create_document_tab.html' %}
+                                {% endif %}
+                            </div>
+
+                            <!-- Ожидает подписи -->
+                            <div class="tab-pane fade" id="pending" role="tabpanel">
+                                <div class="text-center py-5">
+                                    <i class="bi bi-clock-history text-warning" style="font-size: 4rem;"></i>
+                                    <h4 class="mt-3 text-muted">Документы ожидают подписи</h4>
+                                    <p class="text-muted">Здесь будут отображаться документы, ожидающие вашей подписи</p>
+                                </div>
+                            </div>
+
+                            <!-- Мои документы -->
+                            <div class="tab-pane fade" id="documents" role="tabpanel">
+                                <div class="text-center py-5">
+                                    <i class="bi bi-folder text-info" style="font-size: 4rem;"></i>
+                                    <h4 class="mt-3 text-muted">Мои документы</h4>
+                                    <p class="text-muted">Здесь будут отображаться все ваши документы</p>
+                                </div>
+                            </div>
+
+                            <!-- Профиль -->
+                            <div class="tab-pane fade" id="profile" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h5 class="mb-4">
+                                            <i class="bi bi-person-circle"></i> Информация о пользователе
+                                        </h5>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4">
+                                                <strong>ИИН:</strong>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <span class="badge bg-secondary">{{ user.iin }}</span>
+                                            </div>
+                                        </div>
+
+                                        {% if user.bin %}
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4">
+                                                <strong>БИН:</strong>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <span class="badge bg-info">{{ user.bin }}</span>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4">
+                                                <strong>ФИО:</strong>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                {{ user.full_name or 'Не указано' }}
+                                            </div>
+                                        </div>
+
+                                        {% if user.organization %}
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4">
+                                                <strong>Организация:</strong>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                {{ user.organization }}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4">
+                                                <strong>Дата регистрации:</strong>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                {{ user.created_at or 'Не указано' }}
+                                            </div>
+                                        </div>
+
+                                        {% if user.email %}
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4">
+                                                <strong>Email:</strong>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <span class="badge bg-success">{{ user.email }}</span>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="card border-0 bg-light">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-person-circle text-primary" style="font-size: 5rem;"></i>
+                                                <h6 class="mt-3">{{ user.full_name or 'Пользователь' }}</h6>
+                                                <p class="text-muted small">
+                                                    {% if user.bin %}
+                                                        Юридическое лицо
+                                                    {% else %}
+                                                        Физическое лицо
+                                                    {% endif %}
+                                                </p>
+                                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#emailModal">
+                                                    <i class="bi bi-pencil"></i> Изменить email
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Modal -->
+    <div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="emailModalLabel">
+                        <i class="bi bi-envelope"></i> {{ user.email and 'Изменить email' or 'Добавить email' }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Email адрес необходим для работы с документами и уведомлений.
+                    </div>
+                    <form id="emailForm">
+                        <div class="mb-3">
+                            <label for="emailInput" class="form-label">Email адрес</label>
+                            <input type="email" class="form-control" id="emailInput" required 
+                                   placeholder="example@domain.com" value="{{ user.email or '' }}">
+                            <div class="form-text">Введите действующий email адрес</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEmail()">
+                        <i class="bi bi-check"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/static/js/create_document.js?v=1"></script>
+    <script>
+        async function saveEmail() {
+            const email = document.getElementById('emailInput').value;
+            if (!email) {
+                alert('Пожалуйста, введите email адрес');
+                return;
+            }
+            try {
+                const resp = await fetch('/user/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ email })
+                });
+                if (!resp.ok) {
+                    const text = await resp.text();
+                    throw new Error(text || 'Ошибка сохранения email');
+                }
+                const modal = bootstrap.Modal.getInstance(document.getElementById('emailModal'));
+                modal.hide();
+                location.reload();
+            } catch (e) {
+                alert('Ошибка: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
