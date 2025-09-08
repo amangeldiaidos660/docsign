@@ -31,3 +31,37 @@
     <button id="resetForm" class="btn btn-outline-secondary" type="button">Сбросить</button>
 </div>
 <div id="createAlert" class="mt-3"></div>
+
+<!-- Modal подписи -->
+<div class="modal fade" id="signModal" tabindex="-1" aria-labelledby="signModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="signModalLabel">Подписание документа</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="ecp-tab" data-bs-toggle="tab" data-bs-target="#ecp-pane" type="button" role="tab">Подписать ЭЦП</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link disabled" id="qr-tab" type="button" role="tab" aria-disabled="true">QR (скоро)</button>
+          </li>
+        </ul>
+        <div class="tab-content p-3 border-start border-end border-bottom">
+          <div class="tab-pane fade show active" id="ecp-pane" role="tabpanel">
+            <p class="text-muted">Будет выполнено подписание текущего PDF через NCALayer.</p>
+            <button id="ecpSignBtn" class="btn btn-primary" type="button">
+              <i class="bi bi-shield-lock"></i> Подписать ЭЦП
+            </button>
+            <div id="signLog" class="mt-3 small text-muted"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+  </div>

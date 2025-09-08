@@ -9,6 +9,8 @@ const pdfInfo = document.getElementById('pdfInfo');
 const sendDocBtn = document.getElementById('sendDoc');
 const resetFormBtn = document.getElementById('resetForm');
 const createAlert = document.getElementById('createAlert');
+const ecpSignBtn = document.getElementById('ecpSignBtn');
+const signLog = document.getElementById('signLog');
 
 let selectedIds = [];
 let pdfBase64 = '';
@@ -137,6 +139,11 @@ async function sendDocument() {
         renderAlert('warning', 'Загрузите PDF документ');
         return;
     }
+    const modal = new bootstrap.Modal(document.getElementById('signModal'));
+    modal.show();
+
+    /*
+    // Отправка документа на сервер — временно отключено по ТЗ
     try {
         const resp = await fetch('/documents', {
             method: 'POST',
@@ -156,18 +163,10 @@ async function sendDocument() {
         }
         const data = await resp.json();
         renderAlert('success', `Документ создан. ID: ${data.document_id}`);
-        selectedIds = [];
-        renderSelected();
-        pdfInput.value = '';
-        pdfBase64 = '';
-        pdfFileName = '';
-        pdfPreview.style.display = 'none';
-        pdfPreview.src = '';
-        pdfPlaceholder.style.display = 'flex';
-        pdfInfo.textContent = '';
     } catch (e) {
         renderAlert('danger', 'Сетевая ошибка при создании документа');
     }
+    */
 }
 
 if (sendDocBtn) {
@@ -189,4 +188,31 @@ if (resetFormBtn) {
         pdfInfo.textContent = '';
         createAlert.innerHTML = '';
     });
+}
+
+async function signWithEcp() {
+    if (!pdfBase64) {
+        renderAlert('warning', 'Сначала загрузите PDF');
+        return;
+    }
+    try {
+        const { default: ncaWebSocketManager } = await import('./ncaWebSocketManager.js');
+        const { signData } = await import('./ncalayer.js');
+        if (signLog) signLog.innerText = 'Открытие соединения с NCALayer...';
+        await ncaWebSocketManager.connect();
+        if (signLog) signLog.innerText = 'Подписание...';
+        const signature = await signData(pdfBase64);
+        const size = signature ? signature.length : 0;
+        console.log('Подписанный результат:', signature);
+        console.log('Размер подписи (символов):', size);
+        if (signLog) signLog.innerText = `Готово. Размер подписи: ${size} символов.`;
+        ncaWebSocketManager.disconnect();
+    } catch (e) {
+        console.error('Ошибка подписи:', e);
+        if (signLog) signLog.innerText = 'Ошибка подписи. Подробности в консоли.';
+    }
+}
+
+if (ecpSignBtn) {
+    ecpSignBtn.addEventListener('click', signWithEcp);
 }

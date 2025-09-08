@@ -11,7 +11,7 @@ export async function signData(base64data) {
                 data: base64data,
                 signingParams: {
                     decode: true,
-                    encapsulate: true,
+                    encapsulate: false,
                     digested: false,
                     tsaProfile: {}
                 },
