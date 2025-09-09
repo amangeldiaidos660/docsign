@@ -19,3 +19,5 @@ prometheus-fastapi-instrumentator
 jinja2
 pytz
 email-validator
+PyPDF2
+reportlab

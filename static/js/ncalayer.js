@@ -39,3 +39,4 @@ export async function signData(base64data) {
         ncaWebSocketManager.send(message);
     });
 }
+

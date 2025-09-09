@@ -6,7 +6,8 @@ from db.session import SessionLocal
 from db.models import User, Document, DocumentParticipant
 from pydantic import BaseModel, Field
 from typing import List
-from services.document_service import register_document
+from services.registration_service import register_document
+
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -79,48 +80,51 @@ async def create_document(
         raise HTTPException(status_code=401, detail="unauthorized")
     if not payload.participant_user_ids:
         raise HTTPException(status_code=400, detail="participants required")
+    
     unique_partners = list(dict.fromkeys([pid for pid in payload.participant_user_ids if pid != uid]))
     if len(unique_partners) > 4:
         raise HTTPException(status_code=400, detail="max 4 partners allowed")
 
-    # verify users exist
+    
     res = await session.execute(select(User.id).where(User.id.in_(unique_partners + [uid])))
     found_ids = {row.id for row in res}
     missing = set(unique_partners + [uid]) - found_ids
     if missing:
         raise HTTPException(status_code=400, detail=f"unknown user ids: {sorted(list(missing))}")
-
-    # print(f"POST /documents | uid={uid}")
-    # print(f"title={payload.title}")
-    # print(f"file_name={payload.file_name}")
-    # print(f"file_base64 length={len(payload.file_base64)}")
-    # print(f"signature length={len(payload.signature) if payload.signature else 0}")
-    # print(f"participant_user_ids={payload.participant_user_ids}")
     
     if not payload.signature:
         raise HTTPException(status_code=400, detail="signature is required for document registration")
     
-    registration_result = await register_document(
-        title=payload.title or payload.file_name,
-        file_base64=payload.file_base64,
-        signature=payload.signature,
-        participant_count=len(payload.participant_user_ids)
-    )
-    
-    if not registration_result["success"]:
-        raise HTTPException(status_code=500, detail=f"Document registration failed: {registration_result['error']}")
     
     doc = Document(
         owner_id=uid,
         title=payload.title,
         file_name=payload.file_name,
         file_base64=payload.file_base64,
-        file_path=registration_result.get("file_path"),
+        file_path="",
         status="pending",
     )
     session.add(doc)
-    await session.flush()
+    await session.flush() 
 
+    
+    registration_result = await register_document(
+        title=payload.title or payload.file_name,
+        file_base64=payload.file_base64,
+        signature=payload.signature,
+        participant_count=len(payload.participant_user_ids),
+        session=session,
+        o_doc_id=doc.id
+    )
+    
+    if not registration_result["success"]:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"Document registration failed: {registration_result['error']}")
+    
+   
+    doc.file_path = registration_result["file_path"]
+
+    
     initiator_part = DocumentParticipant(
         document_id=doc.id,
         user_id=uid,
@@ -141,5 +145,3 @@ async def create_document(
 
     await session.commit()
     return {"document_id": doc.id}
-
-
