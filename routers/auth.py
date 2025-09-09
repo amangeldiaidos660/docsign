@@ -53,7 +53,7 @@ async def get_nonce():
             response = await client.post(full_url, headers=headers, json={})
             if response.status_code == 200:
                 nonce = response.json().get("nonce")
-                print(nonce)
+                # print(nonce)
                 return JSONResponse(content={"nonce": nonce})
             else:
                 raise HTTPException(

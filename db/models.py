@@ -33,6 +33,7 @@ class Document(Base):
     title: Mapped[str | None] = mapped_column(String(256), nullable=True)
     file_name: Mapped[str] = mapped_column(String(512), nullable=False)
     file_base64: Mapped[str] = mapped_column(String, nullable=False)
+    file_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_current_time, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_current_time, onupdate=get_current_time, nullable=False)

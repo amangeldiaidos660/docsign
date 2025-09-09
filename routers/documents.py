@@ -6,6 +6,7 @@ from db.session import SessionLocal
 from db.models import User, Document, DocumentParticipant
 from pydantic import BaseModel, Field
 from typing import List
+from services.document_service import register_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -64,6 +65,7 @@ class CreateDocumentPayload(BaseModel):
     title: str | None = None
     file_name: str = Field(..., min_length=1)
     file_base64: str = Field(..., min_length=10)
+    signature: str | None = None
     participant_user_ids: List[int] = Field(default_factory=list)
 
 
@@ -88,11 +90,32 @@ async def create_document(
     if missing:
         raise HTTPException(status_code=400, detail=f"unknown user ids: {sorted(list(missing))}")
 
+    # print(f"POST /documents | uid={uid}")
+    # print(f"title={payload.title}")
+    # print(f"file_name={payload.file_name}")
+    # print(f"file_base64 length={len(payload.file_base64)}")
+    # print(f"signature length={len(payload.signature) if payload.signature else 0}")
+    # print(f"participant_user_ids={payload.participant_user_ids}")
+    
+    if not payload.signature:
+        raise HTTPException(status_code=400, detail="signature is required for document registration")
+    
+    registration_result = await register_document(
+        title=payload.title or payload.file_name,
+        file_base64=payload.file_base64,
+        signature=payload.signature,
+        participant_count=len(payload.participant_user_ids)
+    )
+    
+    if not registration_result["success"]:
+        raise HTTPException(status_code=500, detail=f"Document registration failed: {registration_result['error']}")
+    
     doc = Document(
         owner_id=uid,
         title=payload.title,
         file_name=payload.file_name,
         file_base64=payload.file_base64,
+        file_path=registration_result.get("file_path"),
         status="pending",
     )
     session.add(doc)

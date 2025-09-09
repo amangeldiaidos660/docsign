@@ -203,15 +203,51 @@ async function signWithEcp() {
         if (signLog) signLog.innerText = 'Подписание...';
         const signature = await signData(pdfBase64);
         const size = signature ? signature.length : 0;
-        console.log('Подписанный результат:', signature);
         console.log('Размер подписи (символов):', size);
         if (signLog) signLog.innerText = `Готово. Размер подписи: ${size} символов.`;
+        
+        try {
+            const resp = await fetch('/documents', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    title: pdfFileName,
+                    file_name: pdfFileName,
+                    file_base64: pdfBase64,
+                    signature: signature,
+                    participant_user_ids: selectedIds.map(u => u.id)
+                })
+            });
+            if (!resp.ok) {
+                const text = await resp.text();
+                renderAlert('danger', text || 'Ошибка создания документа');
+                return;
+            }
+            const data = await resp.json();
+            renderAlert('success', `Документ создан. ID: ${data.document_id}`);
+            selectedIds = [];
+            renderSelected();
+            pdfInput.value = '';
+            pdfBase64 = '';
+            pdfFileName = '';
+            pdfPreview.style.display = 'none';
+            pdfPreview.src = '';
+            pdfPlaceholder.style.display = 'flex';
+            pdfInfo.textContent = '';
+            const modal = bootstrap.Modal.getInstance(document.getElementById('signModal'));
+            modal.hide();
+        } catch (e) {
+            renderAlert('danger', 'Сетевая ошибка при создании документа');
+        }
+        
         ncaWebSocketManager.disconnect();
     } catch (e) {
         console.error('Ошибка подписи:', e);
         if (signLog) signLog.innerText = 'Ошибка подписи. Подробности в консоли.';
     }
 }
+
 
 if (ecpSignBtn) {
     ecpSignBtn.addEventListener('click', signWithEcp);
