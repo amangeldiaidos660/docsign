@@ -78,24 +78,23 @@ async def create_document(
 ):
     if uid is None:
         raise HTTPException(status_code=401, detail="unauthorized")
-    if not payload.participant_user_ids:
-        raise HTTPException(status_code=400, detail="participants required")
+    
     
     unique_partners = list(dict.fromkeys([pid for pid in payload.participant_user_ids if pid != uid]))
     if len(unique_partners) > 4:
         raise HTTPException(status_code=400, detail="max 4 partners allowed")
 
-    
+   
     res = await session.execute(select(User.id).where(User.id.in_(unique_partners + [uid])))
     found_ids = {row.id for row in res}
     missing = set(unique_partners + [uid]) - found_ids
     if missing:
         raise HTTPException(status_code=400, detail=f"unknown user ids: {sorted(list(missing))}")
-    
+
     if not payload.signature:
         raise HTTPException(status_code=400, detail="signature is required for document registration")
-    
-    
+
+
     doc = Document(
         owner_id=uid,
         title=payload.title,
@@ -105,8 +104,36 @@ async def create_document(
         status="pending",
     )
     session.add(doc)
-    await session.flush() 
+    await session.flush()
+    
+    
+    initiator_part = DocumentParticipant(
+        document_id=doc.id,
+        user_id=uid,
+        role="initiator",
+        status="pending",
+    )
+    session.add(initiator_part)
+    
 
+    
+    for pid in unique_partners:
+        participant = DocumentParticipant(
+            document_id=doc.id,
+            user_id=pid,
+            role="signer",
+            status="pending",
+        )
+        session.add(participant)
+        
+
+    await session.flush()
+    
+   
+    check_stmt = select(DocumentParticipant).where(DocumentParticipant.document_id == doc.id)
+    check_result = await session.execute(check_stmt)
+    participants = check_result.scalars().all()
+    
     
     registration_result = await register_document(
         title=payload.title or payload.file_name,
@@ -116,32 +143,12 @@ async def create_document(
         session=session,
         o_doc_id=doc.id
     )
-    
+
     if not registration_result["success"]:
         await session.rollback()
         raise HTTPException(status_code=500, detail=f"Document registration failed: {registration_result['error']}")
-    
-   
+
     doc.file_path = registration_result["file_path"]
-
-    
-    initiator_part = DocumentParticipant(
-        document_id=doc.id,
-        user_id=uid,
-        role="initiator",
-        status="pending",
-    )
-    session.add(initiator_part)
-
-    for pid in unique_partners:
-        session.add(
-            DocumentParticipant(
-                document_id=doc.id,
-                user_id=pid,
-                role="signer",
-                status="pending",
-            )
-        )
-
     await session.commit()
+
     return {"document_id": doc.id}

@@ -9,45 +9,47 @@ async def update_participants_status(
     o_doc_id: int,
     signature_data: Dict[str, Any]
 ) -> None:
-    print(f"\nОбновление статусов для документа {o_doc_id}")
-    
-    # Получаем ИИНы подписавших
-    signed_iins = []
-    for sig in signature_data["signatures"]:
-        if sig.get("iin"):
-            signed_iins.append(sig["iin"])
-            print(f"Найдена подпись от пользователя с ИИН: {sig['iin']}")
 
-    if not signed_iins:
-        print("Нет подписей с ИИН")
+    signed_data = {}
+    for sig in signature_data.get("signatures", []):
+        if sig.get("iin") and sig.get("signed_at"):
+            signed_data[sig["iin"]] = datetime.strptime(
+                sig["signed_at"], 
+                "%d.%m.%Y %H:%M:%S"
+            )
+
+    if not signed_data:
         return
 
-    # Правильный запрос с учетом связей моделей
-    stmt = (
-        select(DocumentParticipant)
-        .join(Document, Document.id == DocumentParticipant.document_id)
-        .join(User, User.id == DocumentParticipant.user_id)
-        .where(
-            DocumentParticipant.document_id == o_doc_id,
-            User.iin.in_(signed_iins)
-        )
+    
+    users_stmt = select(User).where(User.iin.in_(list(signed_data.keys())))
+    users_result = await session.execute(users_stmt)
+    users = users_result.scalars().all()
+    
+    if not users:
+        return
+        
+    
+    user_sign_times = {
+        user.id: signed_data[user.iin] 
+        for user in users
+    }
+
+    participants_stmt = select(DocumentParticipant).where(
+        DocumentParticipant.document_id == o_doc_id,
+        DocumentParticipant.user_id.in_(list(user_sign_times.keys()))
     )
     
-    result = await session.execute(stmt)
-    participants = result.scalars().all()
+    participants_result = await session.execute(participants_stmt)
+    participants = participants_result.scalars().all()
     
-    print(f"Найдено участников: {len(participants)}")
     
-    # Обновляем статусы
     updates_count = 0
     for participant in participants:
-        print(f"Обновление статуса участника {participant.user_id}")
+        signed_at = user_sign_times[participant.user_id]
         participant.status = "signed"
-        participant.signed_at = datetime.utcnow()
+        participant.signed_at = signed_at
         updates_count += 1
-    
+
     if updates_count > 0:
         await session.commit()
-        print(f"Обновлено статусов: {updates_count}")
-    else:
-        print("Нет обновлений статусов")
