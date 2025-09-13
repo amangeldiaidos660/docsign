@@ -26,7 +26,7 @@ async def add_signature(document_id: str, signature: str) -> Dict[str, Any]:
                 signature_details = await process_signature_data(document_id, get_data)
                 
             
-            return {"add_result": add_data, "get_result": get_data}
+            return {"add_result": add_data, "get_result": get_data, "signature_details": signature_details}
     except Exception as e:
         print({"error": str(e)}) 
         return {"error": str(e)}

@@ -17,8 +17,10 @@ pdfmetrics.registerFont(TTFont('Arial', FONT_PATH))
 
 class PDFSignatureService:
     def __init__(self):
-        self.label_x = 50  
-        self.value_x = 250  
+        self.margin = 80
+        self.label_x = self.margin  
+        self.value_x = self.margin + 200
+        self.font_size = 10
     
 
     def _extract_name(self, subject: str) -> str:
@@ -33,15 +35,43 @@ class PDFSignatureService:
         
         return ' '.join(parts)
 
+    def _draw_wrapped_text(self, canvas, x: float, y: float, text: str, max_width: float) -> float:
+        words = text.split(' ')
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            text_width = canvas.stringWidth(test_line, 'Arial', self.font_size)
+            
+            if text_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+        
+        if current_line:
+            lines.append(current_line)
+        
+        for line in lines:
+            canvas.drawString(x, y, line)
+            y -= 15
+        
+        return y
+
     async def add_signature_page(self, file_path: str, signature_data: Dict[str, Any]) -> str:
         original = PyPDF2.PdfReader(file_path)
         page_size = original.pages[0].mediabox
+        page_width = float(page_size[2])
+        page_height = float(page_size[3])
         
         signature_page = BytesIO()
-        c = canvas.Canvas(signature_page, pagesize=(page_size[2], page_size[3]))
-        c.setFont('Arial', 10)
+        c = canvas.Canvas(signature_page, pagesize=(page_width, page_height))
+        c.setFont('Arial', self.font_size)
         
-        y = page_size[3] - 50 
+        y = page_height - self.margin
+        available_width = page_width - (2 * self.margin)
         
         for sig in signature_data["signatures"]:
             c.drawString(self.label_x, y, "Дата формирования подписи:")
@@ -65,8 +95,8 @@ class PDFSignatureService:
             
             c.drawString(self.label_x, y, "Субъект:")
             y -= 20
-            c.drawString(self.label_x, y, sig['subject']) 
-            y -= 40
+            y = self._draw_wrapped_text(c, self.label_x, y, sig['subject'], available_width)
+            y -= 20
             
             c.drawString(self.label_x, y, "С:")
             c.drawString(self.value_x, y, sig['validity']['from'])
@@ -77,17 +107,32 @@ class PDFSignatureService:
             y -= 20
             
             c.drawString(self.label_x, y, "Издатель:")
-            c.drawString(self.value_x, y, sig['issuer'])
-            y -= 40
+            y -= 15
+            issuer_width = available_width - (self.value_x - self.label_x)
+            y = self._draw_wrapped_text(c, self.value_x, y, sig['issuer'], issuer_width)
+            y -= 20
             
             if "qr_codes" in sig:
-                x = 50
-                for i, qr_code in enumerate(sig["qr_codes"][:4]):
+                qr_codes = sig["qr_codes"][:4]
+                qr_size = 100
+                qr_spacing = 120
+                qrs_per_row = int((available_width - qr_size) // qr_spacing) + 1
+                
+                x = self.margin
+                qr_row_y = y - qr_size
+                
+                for i, qr_code in enumerate(qr_codes):
+                    if i > 0 and i % qrs_per_row == 0:
+                        qr_row_y -= (qr_size + 20)
+                        x = self.margin
+                    
                     qr_image = base64.b64decode(qr_code)
                     img = ImageReader(BytesIO(qr_image))
-                    c.drawImage(img, x, y-100, width=100, height=100)
-                    x += 120
-                y -= 150
+                    c.drawImage(img, x, qr_row_y, width=qr_size, height=qr_size)
+                    x += qr_spacing
+                
+                rows_used = (len(qr_codes) - 1) // qrs_per_row + 1
+                y = qr_row_y - (20 if rows_used == 1 else 0)
             
             y -= 40
         
