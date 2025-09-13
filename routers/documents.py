@@ -149,6 +149,7 @@ async def create_document(
         raise HTTPException(status_code=500, detail=f"Document registration failed: {registration_result['error']}")
 
     doc.file_path = registration_result["file_path"]
+    doc.s_id = registration_result["document_id"]
     await session.commit()
 
     return {"document_id": doc.id}

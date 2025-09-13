@@ -139,34 +139,10 @@ async function sendDocument() {
         renderAlert('warning', 'Загрузите PDF документ');
         return;
     }
-    const modal = new bootstrap.Modal(document.getElementById('signModal'));
-    modal.show();
+    
+    window.openSignModal();
 
-    /*
-    // Отправка документа на сервер — временно отключено по ТЗ
-    try {
-        const resp = await fetch('/documents', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                title: pdfFileName,
-                file_name: pdfFileName,
-                file_base64: pdfBase64,
-                participant_user_ids: selectedIds.map(u => u.id)
-            })
-        });
-        if (!resp.ok) {
-            const text = await resp.text();
-            renderAlert('danger', text || 'Ошибка создания документа');
-            return;
-        }
-        const data = await resp.json();
-        renderAlert('success', `Документ создан. ID: ${data.document_id}`);
-    } catch (e) {
-        renderAlert('danger', 'Сетевая ошибка при создании документа');
-    }
-    */
+    
 }
 
 if (sendDocBtn) {
@@ -249,6 +225,4 @@ async function signWithEcp() {
 }
 
 
-if (ecpSignBtn) {
-    ecpSignBtn.addEventListener('click', signWithEcp);
-}
+window.signWithEcp = signWithEcp;

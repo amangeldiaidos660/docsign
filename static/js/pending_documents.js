@@ -140,6 +140,10 @@ function viewDocument(id, filePath) {
     modal.show();
 }
 
+window.signDocument = function(id) {
+    window.openSignModal(id);
+}
+
 docsPerPage.addEventListener('change', () => {
     currentPage = 1;
     renderDocuments();

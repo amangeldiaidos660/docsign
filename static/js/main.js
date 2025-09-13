@@ -1,6 +1,6 @@
 import ncaWebSocketManager from './ncaWebSocketManager.js';
 import { signData } from './ncalayer.js';
-import { fetchNonce, sign } from './authService.js';
+import { fetchNonce, sign } from './auth_service.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const ecpButton = document.getElementById('ecp-login');

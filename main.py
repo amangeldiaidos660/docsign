@@ -8,6 +8,7 @@ from routers.user import router as user_router
 from routers.documents import router as documents_router
 from routers.pending_documents import router as pending_documents_router
 from routers.signed_documents import router as signed_documents_router
+from routers.sign import router as sign_router
 
 from db.session import init_db
 
@@ -25,6 +26,7 @@ app.include_router(user_router)
 app.include_router(documents_router)
 app.include_router(pending_documents_router)
 app.include_router(signed_documents_router)
+app.include_router(sign_router)
 
 @app.on_event("startup")
 async def on_startup():
